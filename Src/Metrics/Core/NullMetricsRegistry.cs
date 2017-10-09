@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Metrics.MetricData;
+using System;
 using System.Collections.Generic;
-using Metrics.MetricData;
 
 namespace Metrics.Core
 {
     public sealed class NullMetricsRegistry : MetricsRegistry
     {
-        private struct NullMetric : Counter, Meter, Histogram, Timer, TimerContext, RegistryDataProvider
+        private struct NullMetric : Counter, Meter, Histogram, Timer, RegistryDataProvider
         {
             public static readonly NullMetric Instance = new NullMetric();
+            private static readonly TimerContext NullContext = new TimerContext(NullMetric.Instance, null);
 
             public void Increment() { }
             public void Increment(long value) { }
@@ -25,15 +26,15 @@ namespace Metrics.Core
 
             public void Update(long value, string userValue) { }
 
+            public long EndRecording() { return 0; }
+
             public void Record(long time, TimeUnit unit, string userValue = null) { }
             public void Time(Action action, string userValue = null) { action(); }
             public T Time<T>(Func<T> action, string userValue = null) { return action(); }
-            public TimerContext NewContext(string userValue = null) { return NullMetric.Instance; }
-            public TimerContext NewContext(Action<TimeSpan> finalAction, string userValue = null) { finalAction(TimeSpan.Zero); return NullMetric.Instance; }
+            public long StartRecording() { return 0; }
+            public long CurrentTime() { return 0; }
 
-            public TimeSpan Elapsed { get { return TimeSpan.Zero; } }
-            public void Dispose()
-            { }
+            public TimerContext NewContext(string userValue = null) { return NullContext; }
 
             public void Reset() { }
 
@@ -44,7 +45,7 @@ namespace Metrics.Core
             public IEnumerable<TimerValueSource> Timers { get { yield break; } }
         }
 
-        public RegistryDataProvider DataProvider { get { return NullMetric.Instance; } }
+        public RegistryDataProvider DataProvider => NullMetric.Instance;
 
         public void ClearAllMetrics() { }
         public void ResetMetricsValues() { }

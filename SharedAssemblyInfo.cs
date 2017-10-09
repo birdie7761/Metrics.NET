@@ -2,10 +2,10 @@
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Iulian Margarintescu @ Erata.NET")]
+[assembly: AssemblyCompany("Iulian Margarintescu @ Erata.NET, The Recognos Metrics.NET Team")]
 [assembly: AssemblyProduct("Metrics.NET")]
-[assembly: AssemblyCopyright("Copyright Iulian Margarintescu © 2014")]
+[assembly: AssemblyCopyright("Copyright Iulian Margarintescu, The Recognos Metrics.NET Team © 2017")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("0.2.16")]
-[assembly: AssemblyFileVersion("0.2.16")]
-[assembly: AssemblyInformationalVersion("0.2.16")]
+[assembly: AssemblyVersion("0.5.4")]
+[assembly: AssemblyFileVersion("0.5.4")]
+[assembly: AssemblyInformationalVersion("0.5.4")]

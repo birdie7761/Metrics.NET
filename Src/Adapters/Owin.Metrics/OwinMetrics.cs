@@ -34,7 +34,7 @@ namespace Owin.Metrics
         /// <returns>Chainable configuration object.</returns>
         public static MetricsConfig WithOwin(this MetricsConfig config, Action<object> middlewareRegistration, Action<OwinMetricsConfig> owinConfig)
         {
-            var owin = config.WithConfigExtension((ctx, hs) => new OwinMetricsConfig(middlewareRegistration, ctx, hs));
+            var owin = config.WithConfigExtension((ctx, hs) => new OwinMetricsConfig(middlewareRegistration, ctx, hs), () => OwinMetricsConfig.Disabled);
             owinConfig(owin);
             return config;
         }

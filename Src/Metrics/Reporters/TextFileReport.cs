@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Text;
 
 namespace Metrics.Reporters
@@ -8,7 +7,7 @@ namespace Metrics.Reporters
     {
         private readonly string fileName;
 
-        private StringBuilder buffer = null;
+        private StringBuilder buffer;
 
         public TextFileReport(string fileName)
         {
@@ -30,14 +29,8 @@ namespace Metrics.Reporters
 
         protected override void EndReport(string contextName)
         {
-            try
-            {
-                File.WriteAllText(this.fileName, this.buffer.ToString());
-            }
-            catch (Exception x)
-            {
-                MetricsErrorHandler.Handle(x, "Error writing text file " + this.fileName);
-            }
+
+            File.WriteAllText(this.fileName, this.buffer.ToString());
 
             base.EndReport(contextName);
             this.buffer = null;

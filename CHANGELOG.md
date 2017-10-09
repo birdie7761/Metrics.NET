@@ -1,3 +1,99 @@
+###0.5.4 / 2017-06-27
+* fixed the content type for the web app in the owin adapter
+
+###0.5.3 / 2017-06-15 (0.5.3-pre / 2017-06-08)
+* added scrollbar to the metrics drop-down in the visualization app (@EranOfer)
+* fixed potential NullReferenceException when initializing the library (@mcapodici, @SkyterX)
+
+###0.5.2-pre / 2017-05-16
+* added scrollbar to the metrics drop-down in the visualization app (@EranOfer)
+
+###0.5.1 / 2017-05-16 (0.5.1-pre / 2017-02-08)
+* fixed owin adapter endpoints content type header
+
+###0.5.0-pre / 2017-02-04
+* removed the Graphite, Elasticsearch and InfluxDB reporters from the core metrics library. They have been moved to separate repositories and nuget packages.
+
+###0.4.8 / 2017-02-04 (0.4.8-pre / 2017-01-21)
+* improved memory allocations in timers: the internal meter no longer records user values (@SkyterX)
+
+###0.4.7 / 2016-12-23 (0.4.7-pre / 2016-12-19)
+* the Graphite and text file reporters now work with configurable error tolerance
+
+###0.4.6-pre / 2016-12-06
+* reporting can now be configured to be error tolerant (Metrics.Reports.ToleratedConsecutiveFailures config key)
+* an exception is now thrown during startup if an http endpoint is configured more than once
+
+###0.4.5-pre / 2016-12-02
+* disabling metrics now properly works with config extensions
+* performance counters are no longer being registered when metrics are disabled
+
+###0.4.4 / 2016-12-02
+* health checks can now be updated at runtime (@bronsh)
+* fixed the 404 response of core metrics http listener
+
+###0.4.3-pre / 2016-10-09
+* Nancy.Metrics adapter: support for endpoint reports
+* Owin.Metrics adapter: support for endpoint reports
+* decoupled endpoint reports from http listener implementation
+* graphite can now be disabled by omitting config entries (@slawwan)
+
+###0.4.2-pre / 2016-09-18
+* graphite report can now be configured from app.config file (@slawwan)
+* fixed owin adapter endpoints content type header (@glennular)
+
+###0.4.1-pre / 2016-07-24
+* fixed issue with timer metric not using the uservalue when marking the interal meter (@epeshk)
+* updated liblog to the latest version (@tsibelman)
+
+###0.4.0-pre / 2016-06-20
+* support for configuring endpoint reports
+
+###0.3.7 / 2016-05-31
+* fixed AppEnvironment.Current when Assembly.GetEntryAssembly() returns null
+
+###0.3.6 / 2016-05-29
+* fixed timer total time unit info in human readable report (@Liwoj)
+* support for reporting health checks to elasticsearch (@AmirSasson)
+* AppEnvironment now contains EntryAssembly name and version
+
+###0.3.5 / 2016-04-24
+* support rolling index for elasticsearch (@AmirSasson)
+* fixed backwards compatibility with elasticsearch (@andrepnh)
+* fixed graphite report sending incorrect values for meters (@AlistairClark7)
+* fixed string formatting in HealthCheckResult (@bregger)
+
+First 0.3.x stable release, contains all changes in previous 0.3.x-pre versions.
+
+Note: The HDR sampling implementation is in beta stage, some issues might still be present. The default sampling type remains ExponentiallyDecaying for now.
+
+Note for 0.2.x users: SamplingType.FavourRecent has been renamed to SamplingType.ExponentiallyDecaying.
+
+###0.3.4-pre / 2016-03-22
+* support multiple, separate http endpoints
+* initialize http endpoints async
+* fixed compatibility with elasticsearch 2.x
+* global context name can be retrieved from runtime environment
+
+###0.3.3-pre / 2015-06-300
+* introduce configurable Default sampling type
+
+###0.3.2-pre / 2015-04-29
+* better meter performance (on recording path meter has same performance as a counter)
+* default to using HdrHistogram port reservoir for histogram and timer metrics ( greatly reduces contention and increases performance )
+* remove context Merging as the latest changes remove most of the contention on the recording path
+
+###0.3.1-pre / 2015-04-17
+* update packages & fix nuget package dependencies versions
+
+###0.3.0-pre / 2015-04-17
+* use ConcurrentUtils StripedLongAdder for better performance with concurrent counter
+* provide macros for config value for Metrics.GlobalContextName
+* performance improvements - reduce memory allocations
+* initial support for hdrhistogram (fully synchronized version)
+* context merging functionality (will probably be removed after switching to hdr histogram)
+* pre-release for now until the hdr histogram port is complete and integrated
+
 ###0.2.16 / 2015-03-19
 * retry starting httplistener on failure (better support for asp.net hosting where app pools are recycled)
 

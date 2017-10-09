@@ -9,10 +9,10 @@ namespace Metrics.Core
     public sealed class HistogramMetric : HistogramImplementation
     {
         private readonly Reservoir reservoir;
-        private UserValueWrapper last = new UserValueWrapper();
+        private UserValueWrapper last;
 
         public HistogramMetric()
-            : this(new ExponentiallyDecayingReservoir()) { }
+            : this(SamplingType.Default) { }
 
         public HistogramMetric(SamplingType samplingType)
             : this(SamplingTypeToReservoir(samplingType)) { }
@@ -33,7 +33,7 @@ namespace Metrics.Core
             var value = new HistogramValue(this.last.Value, this.last.UserValue, this.reservoir.GetSnapshot(resetMetric));
             if (resetMetric)
             {
-                this.last = new UserValueWrapper();
+                this.last = UserValueWrapper.Empty;
             }
             return value;
         }
@@ -48,19 +48,30 @@ namespace Metrics.Core
 
         public void Reset()
         {
-            this.last = new UserValueWrapper();
+            this.last = UserValueWrapper.Empty;
             this.reservoir.Reset();
         }
 
         private static Reservoir SamplingTypeToReservoir(SamplingType samplingType)
         {
-            switch (samplingType)
+            while (true)
             {
-                case SamplingType.FavourRecent: return new ExponentiallyDecayingReservoir();
-                case SamplingType.LongTerm: return new UniformReservoir();
-                case SamplingType.SlidingWindow: return new SlidingWindowReservoir();
+                switch (samplingType)
+                {
+                    case SamplingType.Default:
+                        samplingType = Metric.Config.DefaultSamplingType;
+                        continue;
+                    case SamplingType.HighDynamicRange:
+                        return new HdrHistogramReservoir();
+                    case SamplingType.ExponentiallyDecaying:
+                        return new ExponentiallyDecayingReservoir();
+                    case SamplingType.LongTerm:
+                        return new UniformReservoir();
+                    case SamplingType.SlidingWindow:
+                        return new SlidingWindowReservoir();
+                }
+                throw new InvalidOperationException("Sampling type not implemented " + samplingType);
             }
-            throw new InvalidOperationException("Sampling type not implemented " + samplingType.ToString());
         }
     }
 }

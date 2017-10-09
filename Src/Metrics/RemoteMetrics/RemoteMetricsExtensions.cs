@@ -6,7 +6,7 @@ namespace Metrics
 {
     public static class RemoteMetricsExtensions
     {
-        private static Func<string, JsonMetricsContext> jsonDeserializer = null;
+        private static Func<string, JsonMetricsContext> jsonDeserializer;
 
 
         public static MetricsConfig WithJsonDeserialzier(this MetricsConfig config, Func<string, JsonMetricsContext> jsonDeserializer)
@@ -22,7 +22,7 @@ namespace Metrics
                 throw new InvalidOperationException("You must set a JSON Deserializer by setting Metrics.Config.WithJsonDeserialzier()");
             }
 
-            config.WithConfigExtension((ctx, hs) => ctx.Advanced.AttachContext(name, new RemoteMetricsContext(remoteUri, updateInterval, jsonDeserializer)));
+            config.WithConfigExtension((ctx, hs) => ctx.Advanced.AttachContext(name, new RemoteMetricsContext(remoteUri, updateInterval, jsonDeserializer)), () => false);
             return config;
         }
     }

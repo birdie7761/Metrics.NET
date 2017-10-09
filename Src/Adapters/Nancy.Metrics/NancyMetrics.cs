@@ -33,7 +33,7 @@ namespace Metrics
         public static MetricsConfig WithNancy(this MetricsConfig config, IPipelines nancyPipelines,
             Action<NancyMetricsConfig> nancyConfig)
         {
-            var currentConfig = config.WithConfigExtension((ctx, hs) => new NancyMetricsConfig(ctx, hs, nancyPipelines));
+            var currentConfig = config.WithConfigExtension((ctx, hs) => new NancyMetricsConfig(ctx, hs, nancyPipelines), () => NancyMetricsConfig.Disabled);
             nancyConfig(currentConfig);
             return config;
         }

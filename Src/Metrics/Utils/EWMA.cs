@@ -1,5 +1,8 @@
 ﻿
 using System;
+using System.Diagnostics;
+using Metrics.ConcurrencyUtilities;
+
 namespace Metrics.Utils
 {
     /// <summary>
@@ -8,7 +11,7 @@ namespace Metrics.Utils
     /// <a href="http://www.teamquest.com/pdfs/whitepaper/ldavg2.pdf">UNIX Load Average Part 2: Not Your Average Average</a>
     /// <a href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">EMA</a>
     /// </summary>
-    public class EWMA
+    public sealed class EWMA
     {
         private const int Interval = 5;
         private const double SecondsPerMinute = 60.0;
@@ -19,10 +22,10 @@ namespace Metrics.Utils
         private static readonly double M5Alpha = 1 - Math.Exp(-Interval / SecondsPerMinute / FiveMinutes);
         private static readonly double M15Alpha = 1 - Math.Exp(-Interval / SecondsPerMinute / FifteenMinutes);
 
-        private volatile bool initialized = false;
+        private volatile bool initialized;
         private VolatileDouble rate = new VolatileDouble(0.0);
 
-        private AtomicLong uncounted = new AtomicLong();
+        private readonly StripedLongAdder uncounted = new StripedLongAdder();
         private readonly double alpha;
         private readonly double interval;
 
@@ -43,41 +46,42 @@ namespace Metrics.Utils
 
         public EWMA(double alpha, long interval, TimeUnit intervalUnit)
         {
+            Debug.Assert(interval > 0);
             this.interval = intervalUnit.ToNanoseconds(interval);
             this.alpha = alpha;
         }
 
         public void Update(long value)
         {
-            uncounted.Add(value);
+            this.uncounted.Add(value);
         }
 
-        public void Tick()
+        public void Tick(long externallyCounted = 0L)
         {
-            long count = uncounted.GetAndReset();
+            var count = this.uncounted.GetAndReset() + externallyCounted;
 
-            double instantRate = count / interval;
-            if (initialized)
+            var instantRate = count / this.interval;
+            if (this.initialized)
             {
-                double doubleRate = rate.Get();
-                rate.Set(doubleRate + alpha * (instantRate - doubleRate));
+                var doubleRate = this.rate.GetValue();
+                this.rate.SetValue(doubleRate + this.alpha * (instantRate - doubleRate));
             }
             else
             {
-                rate.Set(instantRate);
-                initialized = true;
+                this.rate.SetValue(instantRate);
+                this.initialized = true;
             }
         }
 
         public double GetRate(TimeUnit rateUnit)
         {
-            return rate.Get() * rateUnit.ToNanoseconds(1L);
+            return this.rate.GetValue() * rateUnit.ToNanoseconds(1L);
         }
 
         public void Reset()
         {
-            uncounted.SetValue(0L);
-            rate.Set(0.0);
+            this.uncounted.Reset();
+            this.rate.SetValue(0.0);
         }
     }
 }

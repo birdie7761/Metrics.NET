@@ -1,20 +1,30 @@
 ﻿using System;
 using Metrics;
+using Metrics.Reports;
 using Nancy.Bootstrapper;
 
 namespace Nancy.Metrics
 {
     public class NancyMetricsConfig
     {
+        public static readonly NancyMetricsConfig Disabled = new NancyMetricsConfig();
+
         private readonly MetricsContext metricsContext;
         private readonly Func<HealthStatus> healthStatus;
         private readonly IPipelines nancyPipelines;
+
+        private readonly bool isDiabled;
 
         public NancyMetricsConfig(MetricsContext metricsContext, Func<HealthStatus> healthStatus, IPipelines nancyPipelines)
         {
             this.metricsContext = metricsContext;
             this.healthStatus = healthStatus;
             this.nancyPipelines = nancyPipelines;
+        }
+
+        private NancyMetricsConfig()
+        {
+            this.isDiabled = true;
         }
 
         /// <summary>
@@ -36,6 +46,11 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithNancyMetrics(Action<NancyGlobalMetrics> config, string context = "NancyFx")
         {
+            if (this.isDiabled)
+            {
+                return this;
+            }
+
             var globalMetrics = new NancyGlobalMetrics(this.metricsContext.Context(context), this.nancyPipelines);
             config(globalMetrics);
             return this;
@@ -60,7 +75,40 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithMetricsModule(string metricsPath = "/metrics")
         {
-            return WithMetricsModule(m => { }, metricsPath);
+            if (this.isDiabled)
+            {
+                return this;
+            }
+
+            return WithMetricsModule(m => { }, c => { }, metricsPath);
+        }
+
+        /// <summary>
+        /// Expose the metrics information at:
+        /// /metrics in human readable format
+        /// /metrics/json in json format
+        /// <code>
+        /// protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
+        /// {
+        ///     base.ApplicationStartup(container, pipelines);
+        /// 
+        ///     NancyMetrics.Configure()
+        ///         .WithGlobalMetrics(config => config.RegisterAllMetrics(pipelines))
+        ///         .WithMetricsEndpoint(m => m.RequiresAuthentication()); // to enable authentication
+        /// }
+        /// </code>
+        /// </summary>
+        /// <param name="config">Action that can configure the endpoint reports</param>
+        /// <param name="metricsPath">Path where to expose the metrics</param>
+        /// <returns>This instance to allow chaining of the configuration.</returns>
+        public NancyMetricsConfig WithMetricsModule(Action<MetricsEndpointReports> config, string metricsPath = "/metrics")
+        {
+            if (this.isDiabled)
+            {
+                return this;
+            }
+
+            return WithMetricsModule(m => { }, config, metricsPath);
         }
 
         /// <summary>
@@ -79,21 +127,19 @@ namespace Nancy.Metrics
         /// </code>
         /// </summary>
         /// <param name="moduleConfig">Action that can configure the Metrics Module ( for example to apply authentication )</param>
+        /// <param name="config">Action that can configure the endpoint reports</param>
         /// <param name="metricsPath">Path where to expose the metrics</param>
         /// <returns>This instance to allow chaining of the configuration.</returns>
-        public NancyMetricsConfig WithMetricsModule(Action<INancyModule> moduleConfig, string metricsPath = "/metrics")
+        public NancyMetricsConfig WithMetricsModule(Action<INancyModule> moduleConfig, Action<MetricsEndpointReports> config, string metricsPath = "/metrics")
         {
-            MetricsModule.Configure(this.metricsContext.DataProvider, this.healthStatus, moduleConfig, metricsPath);
-            return this;
-        }
+            if (this.isDiabled)
+            {
+                return this;
+            }
 
-        /// <summary>
-        /// Make the Health Checks endpoint return HTTP Status 200 even if checks fail.
-        /// </summary>
-        /// <returns>This instance to allow chaining of the configuration.</returns>
-        public NancyMetricsConfig WithHealthChecksThatAlwaysReturnHttpStatusOk()
-        {
-            MetricsModule.ConfigureHealthChecks(alwaysReturnOk: true);
+            var reportsConfig = new MetricsEndpointReports(this.metricsContext.DataProvider, this.healthStatus);
+            config(reportsConfig);
+            MetricsModule.Configure(moduleConfig, reportsConfig, metricsPath);
             return this;
         }
     }

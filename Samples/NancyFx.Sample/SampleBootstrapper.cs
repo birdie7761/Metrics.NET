@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Metrics;
-using Metrics.Json;
-using Metrics.RemoteMetrics;
+using Metrics.Endpoints;
 using Nancy;
 using Nancy.Authentication.Stateless;
 using Nancy.Bootstrapper;
@@ -31,12 +30,13 @@ namespace NancyFx.Sample
             StatelessAuthentication.Enable(pipelines, new StatelessAuthenticationConfiguration(AuthenticateUser));
 
             Metric.Config
-                .WithAllCounters()
                 .WithReporting(r =>
                     r.WithConsoleReport(TimeSpan.FromSeconds(30))
                 //.WithReporter("Resetting Reporter", () => new SampleResettingReporter(), TimeSpan.FromSeconds(5))
                 )
-                .WithNancy(pipelines);
+                .WithNancy(pipelines, config =>
+                    config.WithMetricsModule(conf => conf
+                        .WithEndpointReport("test", (d, h, r) => new MetricsEndpointResponse("test", "text/plain"))));
 
             // read remote metrics from NancySample
             //Metric.Advanced.AttachContext("Remote",

@@ -1,10 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
-using Metrics;
-using Metrics.Json;
-using Metrics.MetricData;
-using Metrics.Reporters;
-using Metrics.Visualization;
+using Metrics.Endpoints;
+using Metrics.Reports;
 
 namespace Nancy.Metrics
 {
@@ -14,29 +12,28 @@ namespace Nancy.Metrics
         {
             public readonly string ModulePath;
             public readonly Action<INancyModule> ModuleConfigAction;
-            public readonly MetricsDataProvider DataProvider;
-            public readonly Func<HealthStatus> HealthStatus;
+            public readonly NancyMetricsEndpointHandler Handler;
 
-            public ModuleConfig(MetricsDataProvider dataProvider, Func<HealthStatus> healthStatus, Action<INancyModule> moduleConfig, string metricsPath)
+            public ModuleConfig(Action<INancyModule> moduleConfig, NancyMetricsEndpointHandler handler, string metricsPath)
             {
-                this.DataProvider = dataProvider;
-                this.HealthStatus = healthStatus;
                 this.ModuleConfigAction = moduleConfig;
                 this.ModulePath = metricsPath;
+                this.Handler = handler;
             }
         }
 
         private static ModuleConfig Config;
-        private static bool healthChecksAlwaysReturnHttpStatusOk = false;
 
-        internal static void Configure(MetricsDataProvider dataProvider, Func<HealthStatus> healthStatus, Action<INancyModule> moduleConfig, string metricsPath)
-        {
-            MetricsModule.Config = new ModuleConfig(dataProvider, healthStatus, moduleConfig, metricsPath);
-        }
+        private static readonly object[] noCacheHeaders = {
+            new { Header = "Cache-Control", Value = "no-cache, no-store, must-revalidate" },
+            new { Header = "Pragma", Value = "no-cache" },
+            new { Header = "Expires", Value = "0" }
+        };
 
-        internal static void ConfigureHealthChecks(bool alwaysReturnOk)
+        internal static void Configure(Action<INancyModule> moduleConfig, MetricsEndpointReports reports, string metricsPath)
         {
-            healthChecksAlwaysReturnHttpStatusOk = alwaysReturnOk;
+            var handler = new NancyMetricsEndpointHandler(reports.Endpoints);
+            MetricsModule.Config = new ModuleConfig(moduleConfig, handler, metricsPath);
         }
 
         public MetricsModule()
@@ -47,16 +44,7 @@ namespace Nancy.Metrics
                 return;
             }
 
-            if (Config.ModuleConfigAction != null)
-            {
-                Config.ModuleConfigAction(this);
-            }
-
-            var noCacheHeaders = new[] { 
-                new { Header = "Cache-Control", Value = "no-cache, no-store, must-revalidate" },
-                new { Header = "Pragma", Value = "no-cache" },
-                new { Header = "Expires", Value = "0" }
-            };
+            Config.ModuleConfigAction?.Invoke(this);
 
             Get["/"] = _ =>
             {
@@ -64,7 +52,7 @@ namespace Nancy.Metrics
                 {
                     return Response.AsRedirect(this.Request.Url.ToString() + "/");
                 }
-                bool gzip = AcceptsGzip();
+                var gzip = AcceptsGzip();
                 var response = Response.FromStream(FlotWebApp.GetAppStream(!gzip), "text/html");
                 if (gzip)
                 {
@@ -73,42 +61,32 @@ namespace Nancy.Metrics
                 return response;
             };
 
-            Get["/text"] = _ => Response.AsText(StringReport.RenderMetrics(Config.DataProvider.CurrentMetricsData, Config.HealthStatus))
-                .WithHeaders(noCacheHeaders);
+            Get["/{path*}"] = p =>
+            {
+                var path = (string)p.path;
+                var endpointResponse = Config.Handler.Process(path, this.Request);
+                return endpointResponse != null ? GetResponse(endpointResponse) : HttpStatusCode.NotFound;
+            };
+        }
 
-            Get["/json"] = _ => Response.AsText(JsonBuilderV1.BuildJson(Config.DataProvider.CurrentMetricsData), "text/json")
-                .WithHeaders(noCacheHeaders);
-
-            Get["/v2/json"] = _ => Response.AsText(JsonBuilderV2.BuildJson(Config.DataProvider.CurrentMetricsData), "text/json")
-                .WithHeaders(noCacheHeaders);
-
-            Get["/ping"] = _ => Response.AsText("pong", "text/plain")
-                .WithHeaders(noCacheHeaders);
-
-            Get["/health"] = _ => GetHealthStatus()
-                .WithHeaders(noCacheHeaders);
+        private static Response GetResponse(MetricsEndpointResponse endpointResponse)
+        {
+            var response = new Response();
+            response.StatusCode = (HttpStatusCode)endpointResponse.StatusCode;
+            response.ContentType = endpointResponse.ContentType;
+            response.Contents = stream =>
+            {
+                using (var writer = new StreamWriter(stream, endpointResponse.Encoding))
+                {
+                    writer.Write(endpointResponse.Content);
+                }
+            };
+            return response.WithHeaders(noCacheHeaders);
         }
 
         private bool AcceptsGzip()
         {
-            return this.Request.Headers.AcceptEncoding.Any(e => e.Equals("gzip", StringComparison.InvariantCultureIgnoreCase));
-        }
-
-        private Response GetHealthStatus()
-        {
-            var status = Config.HealthStatus();
-            var content = JsonHealthChecks.BuildJson(status);
-
-            var response = Response.AsText(content, "application/json");
-            if (!healthChecksAlwaysReturnHttpStatusOk)
-            {
-                response.StatusCode = status.IsHealthy ? HttpStatusCode.OK : HttpStatusCode.InternalServerError;
-            }
-            else
-            {
-                response.StatusCode = HttpStatusCode.OK;
-            }
-            return response;
+            return this.Request.Headers.AcceptEncoding.Any(e => e.Equals("gzip", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

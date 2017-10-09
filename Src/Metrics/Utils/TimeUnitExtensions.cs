@@ -108,9 +108,9 @@ namespace Metrics.Utils
                 case TimeUnit.Seconds: return "s";
                 case TimeUnit.Minutes: return "min";
                 case TimeUnit.Hours: return "h";
-                case TimeUnit.Days: return "day";
+                case TimeUnit.Days: return "days";
                 default:
-                    throw new ArgumentOutOfRangeException("unit");
+                    throw new ArgumentOutOfRangeException(nameof(unit));
             }
         }
 
@@ -124,9 +124,9 @@ namespace Metrics.Utils
                 case "s": return TimeUnit.Seconds;
                 case "min": return TimeUnit.Minutes;
                 case "h": return TimeUnit.Hours;
-                case "day": return TimeUnit.Days;
+                case "days": return TimeUnit.Days;
                 default:
-                    throw new ArgumentOutOfRangeException("unit");
+                    throw new ArgumentOutOfRangeException(nameof(unit));
             }
         }
 

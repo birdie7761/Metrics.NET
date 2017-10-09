@@ -1,10 +1,13 @@
-﻿
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
+using Metrics.Endpoints;
 using Metrics.Logging;
+using Metrics.MetricData;
 using Metrics.Reports;
-using Metrics.Visualization;
 
 namespace Metrics
 {
@@ -12,28 +15,46 @@ namespace Metrics
     {
         private static readonly ILog log = LogProvider.GetCurrentClassLogger();
 
-        public static readonly bool GlobalyDisabledMetrics = ReadGlobalyDisableMetricsSetting();
+        public static readonly bool GloballyDisabledMetrics = ReadGloballyDisableMetricsSetting();
 
         private readonly MetricsContext context;
         private readonly MetricsReports reports;
 
         private Func<HealthStatus> healthStatus;
-        private MetricsHttpListener listener;
 
-        private bool isDisabled = MetricsConfig.GlobalyDisabledMetrics;
+        private readonly CancellationTokenSource httpEndpointCancellation = new CancellationTokenSource();
+
+        private readonly Dictionary<string, Task<MetricsHttpListener>> httpEndpoints = new Dictionary<string, Task<MetricsHttpListener>>();
+
+        private SamplingType defaultSamplingType = SamplingType.ExponentiallyDecaying;
+
+        private bool isDisabled = MetricsConfig.GloballyDisabledMetrics;
+
+        /// <summary>
+        /// Gets the currently configured default sampling type to use for histogram sampling.
+        /// </summary>
+        public SamplingType DefaultSamplingType
+        {
+            get
+            {
+                Debug.Assert(this.defaultSamplingType != SamplingType.Default);
+                return this.defaultSamplingType;
+            }
+        }
 
         public MetricsConfig(MetricsContext context)
         {
             this.context = context;
 
-            if (!GlobalyDisabledMetrics)
+            if (!GloballyDisabledMetrics)
             {
                 this.healthStatus = HealthChecks.GetStatus;
                 this.reports = new MetricsReports(this.context.DataProvider, this.healthStatus);
+
                 this.context.Advanced.ContextDisabled += (s, e) =>
                 {
                     this.isDisabled = true;
-                    this.DisableAllReports();
+                    DisableAllReports();
                 };
             }
         }
@@ -45,49 +66,50 @@ namespace Metrics
         /// GET /text => metrics in human readable text format
         /// </summary>
         /// <param name="httpUriPrefix">prefix where to start HTTP endpoint</param>
+        /// <param name="filter">Only report metrics that match the filter.</param> 
+        /// <param name="maxRetries">maximum number of attempts to start the http listener. Note the retry time between attempts is dependent on this value</param>
         /// <returns>Chain-able configuration object.</returns>
-        public MetricsConfig WithHttpEndpoint(string httpUriPrefix)
+        public MetricsConfig WithHttpEndpoint(string httpUriPrefix, MetricsFilter filter = null, int maxRetries = 3)
         {
-            if (!isDisabled)
+            if (this.isDisabled)
             {
-                const int MaxRetries = 3;
-                var retries = MaxRetries;
-
-                do
-                {
-                    try
-                    {
-                        using (this.listener)
-                        {
-                        }
-                        this.listener = new MetricsHttpListener(httpUriPrefix, this.context.DataProvider, this.healthStatus);
-                        this.listener.Start();
-                        if (retries != MaxRetries)
-                        {
-                            log.InfoFormat("HttpListener started successfully after {0} retries", MaxRetries - retries);
-                        }
-                        retries = 0;
-                    }
-                    catch (Exception x)
-                    {
-                        retries--;
-                        if (retries > 0)
-                        {
-                            log.WarnException("Unable to start HTTP Listener. Sleeping for {0} sec and retrying {1} more times", x, MaxRetries - retries, retries);
-                            Thread.Sleep(1000 * (MaxRetries - retries));
-                        }
-                        else
-                        {
-                            MetricsErrorHandler.Handle(x,
-                                string.Format("Unable to start HTTP Listener. Retried {0} times, giving up...", MaxRetries));
-                        }
-
-                    }
-                } while (retries > 0);
+                return this;
             }
-            return this;
+
+            return WithHttpEndpoint(httpUriPrefix, _ => { }, filter, maxRetries);
         }
 
+        /// <summary>
+        /// Create HTTP endpoint where metrics will be available in various formats:
+        /// GET / => visualization application
+        /// GET /json => metrics serialized as JSON
+        /// GET /text => metrics in human readable text format
+        /// </summary>
+        /// <param name="httpUriPrefix">prefix where to start HTTP endpoint</param>
+        /// <param name="reportsConfig">Endpoint reports configuration</param>
+        /// <param name="filter">Only report metrics that match the filter.</param> 
+        /// <param name="maxRetries">maximum number of attempts to start the http listener. Note the retry time between attempts is dependent on this value</param>
+        /// <returns>Chain-able configuration object.</returns>
+        public MetricsConfig WithHttpEndpoint(string httpUriPrefix, Action<MetricsEndpointReports> reportsConfig, MetricsFilter filter = null, int maxRetries = 3)
+        {
+            if (this.isDisabled)
+            {
+                return this;
+            }
+
+            if (this.httpEndpoints.ContainsKey(httpUriPrefix))
+            {
+                throw new InvalidOperationException($"Http URI prefix {httpUriPrefix} already configured.");
+            }
+
+            var endpointReports = new MetricsEndpointReports(this.context.DataProvider.WithFilter(filter), this.healthStatus);
+            reportsConfig(endpointReports);
+
+            var endpoint = MetricsHttpListener.StartHttpListenerAsync(httpUriPrefix, endpointReports.Endpoints, this.httpEndpointCancellation.Token, maxRetries);
+            this.httpEndpoints.Add(httpUriPrefix, endpoint);
+
+            return this;
+        }
         /// <summary>
         /// Configure Metrics library to use a custom health status reporter. By default HealthChecks.GetStatus() is used.
         /// </summary>
@@ -95,7 +117,7 @@ namespace Metrics
         /// <returns>Chain-able configuration object.</returns>
         public MetricsConfig WithHealthStatus(Func<HealthStatus> healthStatus)
         {
-            if (!isDisabled)
+            if (!this.isDisabled)
             {
                 this.healthStatus = healthStatus;
             }
@@ -116,7 +138,7 @@ namespace Metrics
                 MetricsErrorHandler.Handler.ClearHandlers();
             }
 
-            if (!isDisabled)
+            if (!this.isDisabled)
             {
                 MetricsErrorHandler.Handler.AddHandler(errorHandler);
             }
@@ -138,7 +160,7 @@ namespace Metrics
                 MetricsErrorHandler.Handler.ClearHandlers();
             }
 
-            if (!isDisabled)
+            if (!this.isDisabled)
             {
                 MetricsErrorHandler.Handler.AddHandler(errorHandler);
             }
@@ -153,7 +175,7 @@ namespace Metrics
         /// <returns>Chain-able configuration object.</returns>
         public MetricsConfig WithReporting(Action<MetricsReports> reportsConfig)
         {
-            if (!isDisabled)
+            if (!this.isDisabled)
             {
                 reportsConfig(this.reports);
             }
@@ -172,7 +194,12 @@ namespace Metrics
         /// <returns>Chain-able configuration object.</returns>
         public MetricsConfig WithConfigExtension(Action<MetricsContext, Func<HealthStatus>> extension)
         {
-            return WithConfigExtension((m, h) => { extension(m, h); return this; });
+            if (this.isDisabled)
+            {
+                return this;
+            }
+
+            return WithConfigExtension((m, h) => { extension(m, h); return this; }, () => this);
         }
 
         /// <summary>
@@ -184,34 +211,97 @@ namespace Metrics
         /// </remarks>
         /// <param name="extension">Action to apply extra configuration.</param>
         /// <returns>The result of calling the extension.</returns>
+        [Obsolete("This configuration method ignores the CompletelyDisableMetrics setting. Please use the overload instead.")]
         public T WithConfigExtension<T>(Func<MetricsContext, Func<HealthStatus>, T> extension)
         {
             return extension(this.context, this.healthStatus);
         }
 
+        /// <summary>
+        /// This method is used for customizing the metrics configuration.
+        /// The <paramref name="extension"/> will be called with the current MetricsContext and HealthStatus provider.
+        /// </summary>
+        /// <remarks>
+        /// In general you don't need to call this method directly.
+        /// </remarks>
+        /// <param name="extension">Action to apply extra configuration.</param>
+        /// <param name="defaultValueProvider">Default value provider for T, which will be used when metrics are disabled.</param>
+        /// <returns>The result of calling the extension.</returns>
+        public T WithConfigExtension<T>(Func<MetricsContext, Func<HealthStatus>, T> extension, Func<T> defaultValueProvider)
+        {
+            if (this.isDisabled)
+            {
+                return defaultValueProvider();
+            }
+
+            return extension(this.context, this.healthStatus);
+        }
+
+        /// <summary>
+        /// Configure the default sampling type to use for histograms.
+        /// </summary>
+        /// <param name="type">Type of sampling to use.</param>
+        /// <returns>Chain-able configuration object.</returns>
+        public MetricsConfig WithDefaultSamplingType(SamplingType type)
+        {
+            if (this.isDisabled)
+            {
+                return this;
+            }
+
+            if (type == SamplingType.Default)
+            {
+                throw new ArgumentException("Sampling type other than default must be specified", nameof(type));
+            }
+            this.defaultSamplingType = type;
+            return this;
+        }
+
         public MetricsConfig WithInternalMetrics()
         {
+            if (this.isDisabled)
+            {
+                return this;
+            }
+
             Metric.EnableInternalMetrics();
             return this;
         }
 
         public void Dispose()
         {
+            ShutdownHttpEndpoints();
             this.reports.Dispose();
-            using (this.listener) { }
-            this.listener = null;
+        }
+
+        private void ShutdownHttpEndpoints()
+        {
+            this.httpEndpointCancellation.Cancel();
+            foreach (var endpoint in this.httpEndpoints.Values)
+            {
+                if (endpoint.IsCompleted)
+                {
+                    using (endpoint.Result)
+                    {
+                    }
+                }
+                else
+                {
+                    log.Warn("The task for Metrics Http Endpoint has not completed. Listener will not be disposed");
+                }
+            }
+            this.httpEndpoints.Clear();
         }
 
         private void DisableAllReports()
         {
             this.reports.StopAndClearAllReports();
-            using (this.listener) { }
-            this.listener = null;
+            ShutdownHttpEndpoints();
         }
 
         internal void ApplySettingsFromConfigFile()
         {
-            if (!GlobalyDisabledMetrics)
+            if (!GloballyDisabledMetrics)
             {
                 ConfigureCsvReports();
                 ConfigureHttpListener();
@@ -225,14 +315,13 @@ namespace Metrics
                 var httpEndpoint = ConfigurationManager.AppSettings["Metrics.HttpListener.HttpUriPrefix"];
                 if (!string.IsNullOrEmpty(httpEndpoint))
                 {
-                    this.WithHttpEndpoint(httpEndpoint);
+                    WithHttpEndpoint(httpEndpoint);
                     log.Debug(() => "Metrics: HttpListener configured at " + httpEndpoint);
                 }
             }
             catch (Exception x)
             {
-                log.ErrorException("Metrics: error configuring HttpListener", x);
-                throw new InvalidOperationException("Invalid Metrics Configuration: Metrics.HttpListener.HttpUriPrefix muse be a valid HttpListener endpoint prefix", x);
+                MetricsErrorHandler.Handle(x, "Invalid Metrics Configuration: Metrics.HttpListener.HttpUriPrefix must be a valid HttpListener endpoint prefix");
             }
         }
 
@@ -248,33 +337,28 @@ namespace Metrics
                     int seconds;
                     if (int.TryParse(csvMetricsInterval, out seconds) && seconds > 0)
                     {
-                        this.WithReporting(r => r.WithCSVReports(csvMetricsPath, TimeSpan.FromSeconds(seconds)));
-                        log.Debug(() => string.Format("Metrics: Storing CSV reports in {0} every {1} seconds.", csvMetricsPath, csvMetricsInterval));
+                        WithReporting(r => r.WithCSVReports(csvMetricsPath, TimeSpan.FromSeconds(seconds)));
+                        log.Debug($"Metrics: Storing CSV reports in {csvMetricsPath} every {seconds} seconds.");
                     }
                 }
             }
             catch (Exception x)
             {
-                log.ErrorException("Metrics: Error configuring CSV reports", x);
-                throw new InvalidOperationException("Invalid Metrics Configuration: Metrics.CSV.Path muse be a valid path and Metrics.CSV.Interval.Seconds must be an integer > 0 ", x);
+                MetricsErrorHandler.Handle(x, "Invalid Metrics Configuration: Metrics.CSV.Path must be a valid path and Metrics.CSV.Interval.Seconds must be an integer > 0 ");
             }
         }
 
-        private static bool ReadGlobalyDisableMetricsSetting()
+        private static bool ReadGloballyDisableMetricsSetting()
         {
             try
             {
                 var isDisabled = ConfigurationManager.AppSettings["Metrics.CompletelyDisableMetrics"];
-                if (!string.IsNullOrEmpty(isDisabled) && isDisabled.ToUpperInvariant() == "TRUE")
-                {
-                    return true;
-                }
-                return false;
+                return !string.IsNullOrEmpty(isDisabled) && isDisabled.Equals("TRUE", StringComparison.OrdinalIgnoreCase);
             }
             catch (Exception x)
             {
-                log.ErrorException("Metrics: Error disabling metrics library", x);
-                throw new InvalidOperationException("Invalid Metrics Configuration: Metrics.CompletelyDisableMetrics must be set to true or false", x);
+                MetricsErrorHandler.Handle(x, "Invalid Metrics Configuration: Metrics.CompletelyDisableMetrics must be set to true or false");
+                return false;
             }
         }
     }

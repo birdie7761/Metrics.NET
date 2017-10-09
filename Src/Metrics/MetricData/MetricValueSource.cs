@@ -46,6 +46,11 @@ namespace Metrics.MetricData
         {
             return this.scalingFunction(this.valueProvider.GetValue(resetMetric));
         }
+
+        public MetricValueProvider<T> ValueProvider
+        {
+            get { return this.valueProvider; }
+        }
     }
 
     /// <summary>
@@ -86,6 +91,6 @@ namespace Metrics.MetricData
         /// <summary>
         /// Instance capable of returning the current value for the metric.
         /// </summary>
-        public MetricValueProvider<T> ValueProvider { get; private set; }
+        public MetricValueProvider<T> ValueProvider { get; }
     }
 }

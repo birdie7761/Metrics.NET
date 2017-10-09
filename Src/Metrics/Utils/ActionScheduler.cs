@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 
 namespace Metrics.Utils
 {
-    using Timer = System.Timers.Timer;
-
     /// <summary>
     /// Utility class to schedule an Action to be executed repeatedly according to the interval.
     /// </summary>
@@ -15,7 +13,17 @@ namespace Metrics.Utils
     /// </remarks>
     public sealed class ActionScheduler : Scheduler
     {
-        private readonly Timer timer = new Timer();
+        private CancellationTokenSource token;
+        private readonly int toleratedConsecutiveFailures;
+
+        public ActionScheduler(int toleratedConsecutiveFailures = 0)
+        {
+            if (toleratedConsecutiveFailures < -1)
+            {
+                throw new ArgumentException($"{nameof(toleratedConsecutiveFailures)} must be >= -1");
+            }
+            this.toleratedConsecutiveFailures = toleratedConsecutiveFailures;
+        }
 
         public void Start(TimeSpan interval, Action action)
         {
@@ -33,55 +41,80 @@ namespace Metrics.Utils
             Start(interval, t =>
             {
                 action(t);
-                return Completed();
+                return TaskEx.CompletedTask;
             });
         }
 
         public void Start(TimeSpan interval, Func<Task> action)
         {
-            Start(interval, t => t.IsCancellationRequested ? action() : Completed());
+            Start(interval, t => t.IsCancellationRequested ? action() : TaskEx.CompletedTask);
         }
 
         public void Start(TimeSpan interval, Func<CancellationToken, Task> action)
         {
             if (interval.TotalSeconds == 0)
             {
-                throw new ArgumentException("interval must be > 0 seconds", "interval");
+                throw new ArgumentException("interval must be > 0 seconds", nameof(interval));
             }
 
-            this.timer.Elapsed += (obj, args) =>
+            if (this.token != null)
             {
-                try
-                {
-                    action(CancellationToken.None).Wait();
-                }
-                catch (Exception x)
-                {
-                    MetricsErrorHandler.Handle(x, "Error while executing action scheduler.");
-                    timer.Stop();
-                }
-            };
+                throw new InvalidOperationException("Scheduler is already started.");
+            }
 
-            timer.Interval = interval.TotalMilliseconds;
-            timer.Start();
+            this.token = new CancellationTokenSource();
+
+            RunScheduler(interval, action, this.token, this.toleratedConsecutiveFailures);
         }
 
-        private static Task Completed()
+        private static void RunScheduler(TimeSpan interval, Func<CancellationToken, Task> action, CancellationTokenSource token, int toleratedConsecutiveFailures)
         {
-            var taskSource = new TaskCompletionSource<bool>();
-            taskSource.SetResult(true);
-            return taskSource.Task;
+            Task.Run(async () =>
+            {
+                var nbFailures = 0;
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(interval, token.Token).ConfigureAwait(false);
+                        try
+                        {
+                            await action(token.Token).ConfigureAwait(false);
+                            nbFailures = 0;
+                        }
+                        catch (Exception x)
+                        {
+                            MetricsErrorHandler.Handle(x, "Error while executing action scheduler.");
+                            if (toleratedConsecutiveFailures >= 0)
+                            {
+                                nbFailures++;
+                                if (nbFailures > toleratedConsecutiveFailures)
+                                {
+                                    token.Cancel();
+                                }
+                            }
+                        }
+                    }
+                    catch (TaskCanceledException) { }
+                }
+            }, token.Token);
         }
 
         public void Stop()
         {
-            this.timer.Stop();
+            if (this.token != null)
+            {
+                token.Cancel();
+            }
         }
 
         public void Dispose()
         {
-            this.timer.Dispose();
-            GC.SuppressFinalize(this);
+            if (this.token != null)
+            {
+                this.token.Cancel();
+                this.token.Dispose();
+            }
         }
     }
 }

@@ -79,7 +79,13 @@ namespace Metrics
         /// <param name="healthCheck">Custom health check to register.</param>
         public static void RegisterHealthCheck(HealthCheck healthCheck)
         {
-            checks.TryAdd(healthCheck.Name, healthCheck);
+            checks.AddOrUpdate(healthCheck.Name, healthCheck, (key, old) => healthCheck);
+        }
+
+        public static void UnregisterHealthCheck(string healthCheckName)
+        {
+            HealthCheck healthCheck;
+            checks.TryRemove(healthCheckName, out healthCheck);
         }
 
         /// <summary>

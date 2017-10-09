@@ -10,24 +10,24 @@ namespace Metrics
         private static readonly ILog log = LogProvider.GetCurrentClassLogger();
         private static readonly Meter errorMeter = Metric.Internal.Meter("Metrics Errors", Unit.Errors);
 
-        private static readonly MetricsErrorHandler handler = new MetricsErrorHandler();
-
         private readonly ConcurrentBag<Action<Exception, string>> handlers = new ConcurrentBag<Action<Exception, string>>();
 
-        private static readonly bool IsMono = Type.GetType("Mono.Runtime") != null;
+        private static readonly bool isMono = Type.GetType("Mono.Runtime") != null;
+
+        static MetricsErrorHandler() { }
 
         private MetricsErrorHandler()
         {
             this.AddHandler((x, msg) => log.ErrorException("Metrics: Unhandled exception in Metrics.NET Library {0} {1}", x, msg, x.Message));
             this.AddHandler((x, msg) => Trace.TraceError("Metrics: Unhandled exception in Metrics.NET Library " + x.ToString()));
 
-            if (Environment.UserInteractive || IsMono)
+            if (Environment.UserInteractive || isMono)
             {
                 this.AddHandler((x, msg) => Console.WriteLine("Metrics: Unhandled exception in Metrics.NET Library {0} {1}", msg, x.ToString()));
             }
         }
 
-        internal static MetricsErrorHandler Handler { get { return handler; } }
+        internal static MetricsErrorHandler Handler { get; } = new MetricsErrorHandler();
 
         internal void AddHandler(Action<Exception> handler)
         {
@@ -36,7 +36,7 @@ namespace Metrics
 
         internal void AddHandler(Action<Exception, string> handler)
         {
-            handlers.Add(handler);
+            this.handlers.Add(handler);
         }
 
         internal void ClearHandlers()
@@ -67,12 +67,12 @@ namespace Metrics
 
         public static void Handle(Exception exception)
         {
-            MetricsErrorHandler.Handle(exception, string.Empty);
+            Handle(exception, string.Empty);
         }
 
         public static void Handle(Exception exception, string message)
         {
-            MetricsErrorHandler.handler.InternalHandle(exception, message);
+            Handler.InternalHandle(exception, message);
         }
     }
 }

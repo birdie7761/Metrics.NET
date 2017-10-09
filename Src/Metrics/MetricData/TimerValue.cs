@@ -10,20 +10,23 @@ namespace Metrics.MetricData
         public readonly MeterValue Rate;
         public readonly HistogramValue Histogram;
         public readonly long ActiveSessions;
-        private readonly TimeUnit DurationUnit;
+        public readonly long TotalTime;
+        private readonly TimeUnit durationUnit;
 
-        public TimerValue(MeterValue rate, HistogramValue histogram, long activeSessions, TimeUnit durationUnit)
+        public TimerValue(MeterValue rate, HistogramValue histogram, long activeSessions, long totalTime, TimeUnit durationUnit)
         {
             this.Rate = rate;
             this.Histogram = histogram;
             this.ActiveSessions = activeSessions;
-            this.DurationUnit = durationUnit;
+            this.TotalTime = totalTime;
+            this.durationUnit = durationUnit;
         }
 
         public TimerValue Scale(TimeUnit rate, TimeUnit duration)
         {
-            var durationFactor = this.DurationUnit.ScalingFactorFor(duration);
-            return new TimerValue(this.Rate.Scale(rate), this.Histogram.Scale(durationFactor), this.ActiveSessions, duration);
+            var durationFactor = this.durationUnit.ScalingFactorFor(duration);
+            var total = this.durationUnit.Convert(duration, this.TotalTime);
+            return new TimerValue(this.Rate.Scale(rate), this.Histogram.Scale(durationFactor), this.ActiveSessions, total, duration);
         }
     }
 
