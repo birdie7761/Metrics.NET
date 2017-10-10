@@ -55,11 +55,11 @@ internal
         /// <returns>The latest written value of this instance.</returns>
         public int GetValue()
         {
-            return Volatile.Read(ref this.value);
+            return System.Threading.Thread.VolatileRead(ref this.value);
         }
 
         /// <summary>
-        /// Returns the current value of the instance without using Volatile.Read fence and ordering.  
+        /// Returns the current value of the instance without using System.Threading.Thread.VolatileRead fence and ordering.  
         /// </summary>
         /// <returns>The current value of the instance in a non-volatile way (might not observe changes on other threads).</returns>
         public int NonVolatileGetValue()
@@ -73,7 +73,7 @@ internal
         /// <param name="value">The new value for this instance.</param>
         public void SetValue(int value)
         {
-            Volatile.Write(ref this.value, value);
+            System.Threading.Thread.VolatileWrite(ref this.value, value);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ internal
         /// <param name="value">The new value for this instance.</param>
         public void LazySetValue(int value)
         {
-            Volatile.Write(ref this.value, value);
+            System.Threading.Thread.VolatileWrite(ref this.value, value);
         }
 
         /// <summary>

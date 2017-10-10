@@ -20,7 +20,7 @@ namespace Metrics.Utils
         {
             if (toleratedConsecutiveFailures < -1)
             {
-                throw new ArgumentException($"{nameof(toleratedConsecutiveFailures)} must be >= -1");
+                throw new ArgumentException("toleratedConsecutiveFailures must be >= -1");
             }
             this.toleratedConsecutiveFailures = toleratedConsecutiveFailures;
         }
@@ -54,7 +54,7 @@ namespace Metrics.Utils
         {
             if (interval.TotalSeconds == 0)
             {
-                throw new ArgumentException("interval must be > 0 seconds", nameof(interval));
+                throw new ArgumentException("interval must be > 0 seconds interval");
             }
 
             if (this.token != null)
@@ -69,14 +69,14 @@ namespace Metrics.Utils
 
         private static void RunScheduler(TimeSpan interval, Func<CancellationToken, Task> action, CancellationTokenSource token, int toleratedConsecutiveFailures)
         {
-            Task.Run(async () =>
+            System.Threading.Tasks.TaskEx.Run(async () =>
             {
                 var nbFailures = 0;
                 while (!token.IsCancellationRequested)
                 {
                     try
                     {
-                        await Task.Delay(interval, token.Token).ConfigureAwait(false);
+                        await System.Threading.Tasks.TaskEx.Delay(interval, token.Token).ConfigureAwait(false);
                         try
                         {
                             await action(token.Token).ConfigureAwait(false);

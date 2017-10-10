@@ -112,7 +112,7 @@ namespace Metrics.Reporters
 
             if (!string.IsNullOrEmpty(unit.Name))
             {
-                yield return new Value("Rate Unit", $"{unit.Name}/{rateUnit.Unit()}");
+                yield return new Value("Rate Unit", string.Concat(unit.Name,"/",rateUnit.Unit()));
             }
         }
 

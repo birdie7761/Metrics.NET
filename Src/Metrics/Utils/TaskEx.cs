@@ -4,6 +4,6 @@ namespace Metrics.Utils
 {
     internal static class TaskEx
     {
-        public static readonly Task CompletedTask = Task.FromResult(0);
+        public static readonly Task CompletedTask = System.Threading.Tasks.TaskEx.FromResult(0);
     }
 }

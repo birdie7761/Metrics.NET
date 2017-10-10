@@ -62,7 +62,7 @@ namespace Owin.Metrics.Middleware
                 return prefix;
             }
 
-            return $"/{prefix}";
+            return string.Concat("/",prefix);
         }
 
         private static Task GetFlotWebApp(IDictionary<string, object> environment)

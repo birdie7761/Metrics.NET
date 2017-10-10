@@ -18,7 +18,7 @@ namespace Metrics.Endpoints
         {
             if (content == null)
             {
-                throw new ArgumentNullException(nameof(content));
+                throw new ArgumentNullException("content");
             }
             if (string.IsNullOrWhiteSpace(contentType))
             {
@@ -26,11 +26,11 @@ namespace Metrics.Endpoints
             }
             if (encoding == null)
             {
-                throw new ArgumentNullException(nameof(encoding));
+                throw new ArgumentNullException("encoding");
             }
             if (statusCodeDescription == null)
             {
-                throw new ArgumentNullException(nameof(statusCodeDescription));
+                throw new ArgumentNullException("statusCodeDescription");
             }
 
             this.Content = content;

@@ -90,7 +90,7 @@ namespace Metrics.Utils
                 var runtimeType = Type.GetType("System.Web.HttpRuntime, System.Web, Version=0.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", false, true);
                 if (runtimeType != null)
                 {
-                    var result = runtimeType.GetProperty("AppDomainAppVirtualPath").GetValue(null) as string;
+                    var result = runtimeType.GetProperty("AppDomainAppVirtualPath").GetValue(null,null) as string;
                     if (result != null)
                     {
                         result = result.Trim('/');
@@ -101,7 +101,7 @@ namespace Metrics.Utils
 
                         log.Debug("HttpRuntime.AppDomainAppVirtualPath is empty, trying AppDomainAppId");
 
-                        result = runtimeType.GetProperty("AppDomainAppId").GetValue(null) as string;
+                        result = runtimeType.GetProperty("AppDomainAppId").GetValue(null, null) as string;
                         if (result != null)
                         {
                             result = result.Trim('/');

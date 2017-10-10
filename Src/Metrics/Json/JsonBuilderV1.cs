@@ -87,7 +87,7 @@ namespace Metrics.Json
         public JsonBuilderV1 AddObject(IEnumerable<MeterValueSource> meters)
         {
             root.Add(new JsonProperty("Meters", meters.Select(m => new JsonProperty(m.Name, Meter(m.Value)))));
-            units.Add(new JsonProperty("Meters", meters.Select(m => new JsonProperty(m.Name, $"{m.Unit.Name}/{m.RateUnit.Unit()}"))));
+            units.Add(new JsonProperty("Meters", meters.Select(m => new JsonProperty(m.Name, string.Format("{0}/{1}", m.Unit.Name, m.RateUnit.Unit())))));
             return this;
         }
 
@@ -113,7 +113,7 @@ namespace Metrics.Json
 
             var units = timers.Select(t => new JsonProperty(t.Name, new[]
                 {
-                    new JsonProperty("Rate", $"{t.Unit.Name}/{t.RateUnit.Unit()}"),
+                    new JsonProperty("Rate", string.Format("{0}/{1}", t.Unit.Name, t.RateUnit.Unit())),
                     new JsonProperty("Duration", t.DurationUnit.Unit())
                 }));
 

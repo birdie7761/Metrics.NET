@@ -11,7 +11,7 @@ namespace Metrics.Json
             this.Properties = properties;
         }
 
-        public IEnumerable<JsonProperty> Properties { get; }
+        public IEnumerable<JsonProperty> Properties { get; private set; }
 
         public string AsJson(bool indented = true, int indent = 0)
         {

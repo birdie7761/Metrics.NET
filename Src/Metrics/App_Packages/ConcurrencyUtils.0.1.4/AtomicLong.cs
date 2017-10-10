@@ -55,7 +55,7 @@ internal
         /// <returns>The latest written value of this instance.</returns>
         public long GetValue()
         {
-            return Volatile.Read(ref this.value);
+            return System.Threading.Thread.VolatileRead(ref this.value);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ internal
         /// <param name="value">The new value for this instance.</param>
         public void SetValue(long value)
         {
-            Volatile.Write(ref this.value, value);
+            System.Threading.Thread.VolatileWrite(ref this.value, value);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ internal
         /// <param name="value">The new value for this instance.</param>
         public void LazySetValue(long value)
         {
-            Volatile.Write(ref this.value, value);
+            System.Threading.Thread.VolatileWrite(ref this.value, value);
         }
 
         /// <summary>

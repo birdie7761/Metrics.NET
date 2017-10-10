@@ -45,7 +45,7 @@ namespace Metrics.Core
             public IEnumerable<TimerValueSource> Timers { get { yield break; } }
         }
 
-        public RegistryDataProvider DataProvider => NullMetric.Instance;
+        public RegistryDataProvider DataProvider { get { return NullMetric.Instance; } }
 
         public void ClearAllMetrics() { }
         public void ResetMetricsValues() { }

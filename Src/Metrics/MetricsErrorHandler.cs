@@ -27,7 +27,7 @@ namespace Metrics
             }
         }
 
-        internal static MetricsErrorHandler Handler { get; } = new MetricsErrorHandler();
+        internal readonly static MetricsErrorHandler Handler = new MetricsErrorHandler();
 
         internal void AddHandler(Action<Exception> handler)
         {

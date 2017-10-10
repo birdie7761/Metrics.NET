@@ -44,15 +44,15 @@ internal
             this.array = new int[length];
         }
 
-        public AtomicIntArray(IReadOnlyList<int> source)
-        {
-            var clone = new int[source.Count];
-            for (var i = 0; i < source.Count; i++)
-            {
-                clone[i] = source[i];
-            }
-            this.array = clone;
-        }
+        //public AtomicIntArray(IReadOnlyList<int> source)
+        //{
+        //    var clone = new int[source.Count];
+        //    for (var i = 0; i < source.Count; i++)
+        //    {
+        //        clone[i] = source[i];
+        //    }
+        //    this.array = clone;
+        //}
 
         public int Length
         {
@@ -66,7 +66,7 @@ internal
         /// <returns>The latest written value of this instance.</returns>
         public int GetValue(int index)
         {
-            return Volatile.Read(ref this.array[index]);
+            return System.Threading.Thread.VolatileRead(ref this.array[index]);
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ internal
         /// <param name="value">The new value for this instance.</param>
         public void SetValue(int index, int value)
         {
-            Volatile.Write(ref this.array[index], value);
+            System.Threading.Thread.VolatileWrite(ref this.array[index], value);
         }
 
         /// <summary>

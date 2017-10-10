@@ -94,7 +94,7 @@ namespace Metrics.Reports
             int toleratedConsecutiveFailures;
             if (!int.TryParse(configValue, out toleratedConsecutiveFailures) || toleratedConsecutiveFailures < -1)
             {
-                throw new InvalidOperationException($"Invalid Metrics Configuration for {configKey}: \"{configValue}\". Value must be an integer >= -1.");
+                throw new InvalidOperationException(string.Concat("Invalid Metrics Configuration for ",configKey,": \"",configValue,"\". Value must be an integer >= -1."));
             }
 
             return toleratedConsecutiveFailures;

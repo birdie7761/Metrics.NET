@@ -35,7 +35,7 @@ namespace Metrics
         /// <summary>
         /// Exposes advanced operations that are possible on this metrics context.
         /// </summary>
-        public static AdvancedMetricsContext Advanced => globalContext;
+        public static AdvancedMetricsContext Advanced {get{return globalContext;}}
 
         /// <summary>
         /// Create a new child metrics context. Metrics added to the child context are kept separate from the metrics in the 
@@ -234,7 +234,7 @@ namespace Metrics
 
                 if (string.IsNullOrWhiteSpace(key.Value))
                 {
-                    var msg = $"Metrics: Error substituting Environment tokens in Metrics.GlobalContextName. Found token with no key. Original string {configName}";
+                    var msg = string.Concat("Metrics: Error substituting Environment tokens in Metrics.GlobalContextName. Found token with no key. Original string ",configName);
                     log.Error(msg);
                     throw new InvalidOperationException(msg);
                 }
@@ -248,7 +248,7 @@ namespace Metrics
                     val = ConfigurationManager.AppSettings[key.Value];
                     if (string.IsNullOrWhiteSpace(val))
                     {
-                        var msg = $"Metrics: Error substituting Environment tokens in Metrics.GlobalContextName. Found key '{key}' has no value in Environment or AppSettings. Original string {configName}";
+                        var msg = string.Concat("Metrics: Error substituting Environment tokens in Metrics.GlobalContextName. Found key '{key}' has no value in Environment or AppSettings. Original string ",configName);
                         log.Error(msg);
                         throw new InvalidOperationException(msg);
                     }
@@ -267,7 +267,7 @@ namespace Metrics
 
         private static string GetDefaultGlobalContextName()
         {
-            return $@"{CleanName(Environment.MachineName)}.{CleanName(Process.GetCurrentProcess().ProcessName)}";
+            return string.Concat(CleanName(Environment.MachineName),".",CleanName(Process.GetCurrentProcess().ProcessName));
         }
     }
 }

@@ -92,7 +92,7 @@ namespace Metrics.StupidBenchmarks
             BenchmarkRunner.DefaultTotalSeconds = targetOptions.Seconds;
             BenchmarkRunner.DefaultMaxThreads = targetOptions.MaxThreads;
 
-            //Metric.Config.WithHttpEndpoint("http://localhost:1234/");
+            Metric.Config.WithHttpEndpoint("http://localhost:1234/");
 
             switch (target)
             {
@@ -145,6 +145,7 @@ namespace Metrics.StupidBenchmarks
                     BenchmarkRunner.Run("WorkWithTimer", () => load.DoSomeWorkWithATimer(), iterationsChunk: 10);
                     break;
             }
+            Console.ReadLine();
         }
     }
 }

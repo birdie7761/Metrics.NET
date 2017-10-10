@@ -44,7 +44,10 @@ namespace Nancy.Metrics
                 return;
             }
 
-            Config.ModuleConfigAction?.Invoke(this);
+            if(Config.ModuleConfigAction != null)
+            {
+                Config.ModuleConfigAction.Invoke(this);
+            }            
 
             Get["/"] = _ =>
             {

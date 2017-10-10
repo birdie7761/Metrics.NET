@@ -20,17 +20,17 @@ namespace Metrics.Sampling
             this.MaxUserValue = maxUserValue;
         }
 
-        public long Count { get; }
+        public long Count { get;private set; }
 
-        public int Size => this.values.Length;
+        public int Size {get{return this.values.Length;}}
 
-        public long Max => this.values.LastOrDefault();
-        public long Min => this.values.FirstOrDefault();
+        public long Max {get{return this.values.LastOrDefault();}}
+        public long Min {get{return this.values.FirstOrDefault();}}
 
-        public string MaxUserValue { get; }
-        public string MinUserValue { get; }
+        public string MaxUserValue { get;private set; }
+        public string MinUserValue { get;private set; }
 
-        public double Mean => Size == 0 ? 0.0 : this.values.Average();
+        public double Mean {get{return Size == 0 ? 0.0 : this.values.Average();}}
 
         public double StdDev
         {
@@ -48,20 +48,20 @@ namespace Metrics.Sampling
             }
         }
 
-        public double Median => GetValue(0.5d);
-        public double Percentile75 => GetValue(0.75d);
-        public double Percentile95 => GetValue(0.95d);
-        public double Percentile98 => GetValue(0.98d);
-        public double Percentile99 => GetValue(0.99d);
-        public double Percentile999 => GetValue(0.999d);
+        public double Median {get{return GetValue(0.5d);}}
+        public double Percentile75 {get{return GetValue(0.75d);}}
+        public double Percentile95 {get{return GetValue(0.95d);}}
+        public double Percentile98 {get{return GetValue(0.98d);}}
+        public double Percentile99 {get{return GetValue(0.99d);}}
+        public double Percentile999 {get{return GetValue(0.999d);}}
 
-        public IEnumerable<long> Values => this.values;
+        public IEnumerable<long> Values {get{return this.values;}}
 
         public double GetValue(double quantile)
         {
             if (quantile < 0.0 || quantile > 1.0 || double.IsNaN(quantile))
             {
-                throw new ArgumentException($"{quantile} is not in [0..1]");
+                throw new ArgumentException(string.Concat(quantile.ToString()," is not in [0..1]"));
             }
 
             if (this.Size == 0)

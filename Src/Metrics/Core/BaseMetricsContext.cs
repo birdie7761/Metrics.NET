@@ -24,12 +24,12 @@ namespace Metrics.Core
 
         protected abstract MetricsContext CreateChildContextInstance(string contextName);
 
-        public AdvancedMetricsContext Advanced => this;
+        public AdvancedMetricsContext Advanced {get {return this;}}
 
         public event EventHandler ContextShuttingDown;
         public event EventHandler ContextDisabled;
 
-        public MetricsDataProvider DataProvider { get; }
+        public MetricsDataProvider DataProvider { get; private set; }
 
         public MetricsContext Context(string contextName)
         {
@@ -170,8 +170,16 @@ namespace Metrics.Core
 
             ForAllChildContexts(c => c.Advanced.CompletelyDisableMetrics());
 
-            this.ContextShuttingDown?.Invoke(this, EventArgs.Empty);
-            this.ContextDisabled?.Invoke(this, EventArgs.Empty);
+            if(this.ContextShuttingDown != null)
+            {
+                this.ContextShuttingDown.Invoke(this, EventArgs.Empty);
+            }
+
+            if(this.ContextDisabled != null)
+            {
+                this.ContextDisabled.Invoke(this, EventArgs.Empty);
+            }
+
         }
 
         public void Dispose()
@@ -186,7 +194,10 @@ namespace Metrics.Core
             {
                 if (!this.isDisabled)
                 {
-                    this.ContextShuttingDown?.Invoke(this, EventArgs.Empty);
+                    if(this.ContextShuttingDown != null)
+                    {
+                        this.ContextShuttingDown.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
         }

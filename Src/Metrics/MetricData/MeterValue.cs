@@ -11,7 +11,7 @@ namespace Metrics.MetricData
     public sealed class MeterValue
     {
         private static readonly SetItem[] noItems = new SetItem[0];
-        public static readonly IComparer<SetItem> SetItemComparer = Comparer<SetItem>.Create((x, y) =>
+        public static readonly IComparer<SetItem> SetItemComparer = Metrics.Utils.Comparer.Create<SetItem>((x, y) =>
         {
             var percent = Comparer<double>.Default.Compare(x.Percent, y.Percent);
             return percent == 0 ? Comparer<string>.Default.Compare(x.Item, y.Item) : percent;
@@ -47,7 +47,7 @@ namespace Metrics.MetricData
         {
             if (items == null)
             {
-                throw new ArgumentNullException(nameof(items));
+                throw new ArgumentNullException("items");
             }
 
             this.Count = count;

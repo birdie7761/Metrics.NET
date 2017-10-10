@@ -11,7 +11,7 @@ namespace Metrics.Endpoints
         {
             if (headers == null)
             {
-                throw new ArgumentNullException(nameof(headers));
+                throw new ArgumentNullException("headers");
             }
 
             this.Headers = headers;

@@ -13,7 +13,7 @@ namespace Metrics.Reports
 
         private readonly Dictionary<string, MetricsEndpoint> endpoints = new Dictionary<string, MetricsEndpoint>();
 
-        public IEnumerable<MetricsEndpoint> Endpoints => this.endpoints.Values;
+        public IEnumerable<MetricsEndpoint> Endpoints { get { return this.endpoints.Values; } }
 
         public MetricsEndpointReports(MetricsDataProvider metricsDataProvider, Func<HealthStatus> healthStatus)
         {

@@ -38,7 +38,7 @@ namespace Metrics.Endpoints
 
         public static Task<MetricsHttpListener> StartHttpListenerAsync(string httpUriPrefix, IEnumerable<MetricsEndpoint> endpoints, CancellationToken token, int maxRetries = 1)
         {
-            return Task.Factory.StartNew(async () =>
+            return System.Threading.Tasks.TaskEx.Run(() =>
             {
                 MetricsHttpListener listener = null;
                 var remainingRetries = maxRetries;
@@ -62,16 +62,18 @@ namespace Metrics.Endpoints
                         if (remainingRetries > 0)
                         {
                             log.WarnException("Unable to start HTTP Listener. Sleeping for {0} sec and retrying {1} more times", x, maxRetries - remainingRetries, remainingRetries);
-                            await Task.Delay(1000 * (maxRetries - remainingRetries), token).ConfigureAwait(false);
+                            //TODO
+                            //await System.Threading.Tasks.TaskEx.Delay(1000 * (maxRetries - remainingRetries), token).ConfigureAwait(false);
+                            Thread.Sleep(1000 * (maxRetries - remainingRetries));
                         }
                         else
                         {
-                            MetricsErrorHandler.Handle(x, $"Unable to start HTTP Listener. Retried {maxRetries} times, giving up...");
+                            MetricsErrorHandler.Handle(x, string.Concat("Unable to start HTTP Listener. Retried ",maxRetries.ToString()," times, giving up..."));
                         }
                     }
                 } while (remainingRetries > 0);
                 return listener;
-            }, token).Unwrap();
+            }, token);
         }
 
         private static string ParsePrefixPath(string listenerUriPrefix)
@@ -216,7 +218,7 @@ namespace Metrics.Endpoints
             var acceptsGzip = AcceptsGzip(context.Request);
             if (!acceptsGzip)
             {
-                using (var writer = new StreamWriter(context.Response.OutputStream, textEncoding, 4096, true))
+                using (var writer = new StreamWriter(context.Response.OutputStream, textEncoding, 4096))
                 {
                     writer.Write(data);
                 }
@@ -225,7 +227,7 @@ namespace Metrics.Endpoints
             {
                 context.Response.AddHeader("Content-Encoding", "gzip");
                 using (var gzip = new GZipStream(context.Response.OutputStream, CompressionMode.Compress, true))
-                using (var writer = new StreamWriter(gzip, textEncoding, 4096, true))
+                using (var writer = new StreamWriter(gzip, textEncoding, 4096))
                 {
                     writer.Write(data);
                 }

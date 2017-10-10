@@ -40,7 +40,7 @@ namespace Metrics.StupidBenchmarks
 
         private static readonly long factor = (1000L * 1000L * 1000L) / Stopwatch.Frequency;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long TimeInNanoseconds()
         {
             return Stopwatch.GetTimestamp() * factor;

@@ -74,7 +74,7 @@ namespace Metrics
         /// <returns>Unhealthy status response.</returns>
         public static HealthCheckResult Unhealthy(Exception exception)
         {
-            var status = $"EXCEPTION: {exception.GetType().Name} - {exception.Message}";
+            var status = string.Concat("EXCEPTION: ",exception.GetType().Name," - ",exception.Message);
             return new HealthCheckResult(false, status + Environment.NewLine + FormatStackTrace(exception));
         }
 

@@ -53,7 +53,11 @@ namespace Metrics.PerfCounters
             {
                 try
                 {
-                    return this.performanceCounter?.NextValue() ?? double.NaN;
+                    if(this.performanceCounter != null)
+                    {
+                        return this.performanceCounter.NextValue();
+                    }
+                    return double.NaN;
                 }
                 catch (Exception x)
                 {

@@ -8,13 +8,13 @@ namespace Metrics.Endpoints
 
         public readonly string Endpoint;
 
-        public MetricsEndpointResponse ProduceResponse(MetricsEndpointRequest request) => this.responseFactory(request);
+        public MetricsEndpointResponse ProduceResponse(MetricsEndpointRequest request) {return this.responseFactory(request);}
 
         public MetricsEndpoint(string endpoint, Func<MetricsEndpointRequest, MetricsEndpointResponse> responseFactory)
         {
             if (responseFactory == null)
             {
-                throw new ArgumentNullException(nameof(responseFactory));
+                throw new ArgumentNullException("responseFactory");
             }
 
             this.Endpoint = NormalizeEndpoint(endpoint);

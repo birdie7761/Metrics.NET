@@ -99,7 +99,7 @@ namespace Metrics
 
             if (this.httpEndpoints.ContainsKey(httpUriPrefix))
             {
-                throw new InvalidOperationException($"Http URI prefix {httpUriPrefix} already configured.");
+                throw new InvalidOperationException(string.Concat("Http URI prefix ",httpUriPrefix," already configured."));
             }
 
             var endpointReports = new MetricsEndpointReports(this.context.DataProvider.WithFilter(filter), this.healthStatus);
@@ -251,7 +251,7 @@ namespace Metrics
 
             if (type == SamplingType.Default)
             {
-                throw new ArgumentException("Sampling type other than default must be specified", nameof(type));
+                throw new ArgumentException("Sampling type other than default must be specified type");
             }
             this.defaultSamplingType = type;
             return this;
@@ -338,7 +338,7 @@ namespace Metrics
                     if (int.TryParse(csvMetricsInterval, out seconds) && seconds > 0)
                     {
                         WithReporting(r => r.WithCSVReports(csvMetricsPath, TimeSpan.FromSeconds(seconds)));
-                        log.Debug($"Metrics: Storing CSV reports in {csvMetricsPath} every {seconds} seconds.");
+                        log.Debug(string.Concat("Metrics: Storing CSV reports in ",csvMetricsPath," every ",seconds.ToString()," seconds."));
                     }
                 }
             }

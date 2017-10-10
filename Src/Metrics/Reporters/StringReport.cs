@@ -26,6 +26,6 @@ namespace Metrics.Reporters
             this.buffer.AppendLine(string.Format(line, args));
         }
 
-        public string Result => this.buffer.ToString();
+        public string Result { get { return this.buffer.ToString(); } }
     }
 }

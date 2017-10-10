@@ -12,7 +12,7 @@ namespace Metrics.Reporters
         {
             if (string.IsNullOrWhiteSpace(directory))
             {
-                throw new ArgumentNullException(nameof(directory));
+                throw new ArgumentNullException("directory");
             }
 
             Directory.CreateDirectory(directory);
@@ -21,7 +21,7 @@ namespace Metrics.Reporters
 
         protected virtual string FormatFileName(string directory, string metricName, string metricType)
         {
-            var name = $"{metricName}.{metricType}.csv";
+            var name = String.Concat(metricName,".",metricType,".csv");
             return Path.Combine(directory, CleanFileName(name));
         }
 

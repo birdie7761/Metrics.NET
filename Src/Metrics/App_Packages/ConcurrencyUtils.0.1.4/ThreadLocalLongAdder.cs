@@ -53,7 +53,7 @@ internal
         /// <summary>
         /// We store a ValueHolder instance for each thread that requires one.
         /// </summary>
-        private readonly ThreadLocal<ValueHolder> local = new ThreadLocal<ValueHolder>(() => new ValueHolder(), true);
+        private readonly ThreadLocal<ValueHolder> local = new ThreadLocal<ValueHolder>(() => new ValueHolder());
 
         /// <summary>
         /// Creates a new instance of the adder with initial value of zero.
@@ -72,29 +72,29 @@ internal
         /// Returns the current value of this adder. This method sums all the thread local variables and returns the result.
         /// </summary>
         /// <returns>The current value recored by this adder.</returns>
-        public long GetValue()
-        {
-            long sum = 0;
-            foreach (var value in this.local.Values)
-            {
-                sum += Volatile.Read(ref value.Value);
-            }
-            return sum;
-        }
+        //public long GetValue()
+        //{
+        //    long sum = 0;
+        //    foreach (var value in this.local.Values)
+        //    {
+        //        sum += Volatile.Read(ref value.Value);
+        //    }
+        //    return sum;
+        //}
 
         /// <summary>
         /// Returns the current value of the instance without using Volatile.Read fence and ordering.  
         /// </summary>
         /// <returns>The current value of the instance in a non-volatile way (might not observe changes on other threads).</returns>
-        public long NonVolatileGetValue()
-        {
-            long sum = 0;
-            foreach (var value in this.local.Values)
-            {
-                sum += value.Value;
-            }
-            return sum;
-        }
+        //public long NonVolatileGetValue()
+        //{
+        //    long sum = 0;
+        //    foreach (var value in this.local.Values)
+        //    {
+        //        sum += value.Value;
+        //    }
+        //    return sum;
+        //}
 
         /// <summary>
         /// Returns the current value of this adder and resets the value to zero.
@@ -104,26 +104,26 @@ internal
         /// This method is thread-safe. If updates happen during this method, they are either included in the final sum, or reflected in the value after the reset.
         /// </remarks>
         /// <returns>The current value recored by this adder.</returns>
-        public long GetAndReset()
-        {
-            long sum = 0;
-            foreach (var val in this.local.Values)
-            {
-                sum += val.GetAndReset();
-            }
-            return sum;
-        }
+        //public long GetAndReset()
+        //{
+        //    long sum = 0;
+        //    foreach (var val in this.local.Values)
+        //    {
+        //        sum += val.GetAndReset();
+        //    }
+        //    return sum;
+        //}
 
         /// <summary>
         /// Resets the current value to zero.
         /// </summary>
-        public void Reset()
-        {
-            foreach (var value in this.local.Values)
-            {
-                Volatile.Write(ref value.Value, 0L);
-            }
-        }
+        //public void Reset()
+        //{
+        //    foreach (var value in this.local.Values)
+        //    {
+        //        Volatile.Write(ref value.Value, 0L);
+        //    }
+        //}
 
         /// <summary>
         /// Add <paramref name="value"/> to this instance.

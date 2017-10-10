@@ -130,8 +130,9 @@ namespace HdrHistogram
         /// <param name="yieldTimeNsec">The amount of time (in nanoseconds) to sleep in each yield if yield loop is needed.</param>
         public void FlipPhase(long yieldTimeNsec = 0)
         {
-            if (!Monitor.IsEntered(readerLockObject))
+            if(Monitor.TryEnter(readerLockObject))
             {
+                Monitor.Exit(readerLockObject);
                 throw new ThreadStateException("flipPhase() can only be called while holding the readerLock()");
             }
 
